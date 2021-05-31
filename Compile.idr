@@ -22,8 +22,8 @@ Semigroup Output where
 Monoid Output where
   neutral = MkOutput [] []
 
-data Signal : Domain -> Type -> Type where
-  MkSignal : Nat -> Signal D x
+data Signal : Domain -> Nat -> Type -> Type where
+  MkSignal : Nat -> Signal D n x
 
 data Desc : Domain -> Type -> Type where
   MkDesc : RWS () Output Nat x -> Desc D x
@@ -59,7 +59,6 @@ literal xs =
     bitToString : Bool -> String
     bitToString True = "1"
     bitToString False = "0"
-
 
 CircuitOps Domain Signal Desc where
   add {n} D (MkSignal x) (MkSignal y) = do

@@ -7,14 +7,14 @@ import Finite
 public export
 interface CircuitOps
   (Domain : Type)
-  (Signal : Domain -> Type -> Type)
+  (Signal : Domain -> Nat -> Type -> Type)
   (Desc : Domain -> Type -> Type) | Domain where
     add :
       {n:Nat} ->
       (d:Domain) ->
-      Signal d (BitInt n) ->
-      Signal d (BitInt n) ->
-      Desc d (Signal d (BitInt (S n)))
+      Signal d n (BitInt n) ->
+      Signal d n (BitInt n) ->
+      Desc d (Signal d (S n) (BitInt (S n)))
 
     reinterpret :
       {X:Type} ->
@@ -23,8 +23,8 @@ interface CircuitOps
       (fy:Finite Y) =>
       (d:Domain) ->
       length @{fx} = length @{fy} ->
-      Signal d X ->
-      Signal d Y
+      Signal d (length @{fx}) X ->
+      Signal d (length @{fy}) Y
 
     unpair :
       {X:Type} ->
@@ -32,8 +32,8 @@ interface CircuitOps
       (fx:Finite X) =>
       (fy:Finite Y) =>
       (d:Domain) ->
-      Signal d (X, Y) ->
-      Desc d (Signal d X, Signal d Y)
+      Signal d (length @{fx} + length @{fy}) (X, Y) ->
+      Desc d (Signal d (length @{fx}) X, Signal d (length @{fy}) Y)
 
     pair :
       {X:Type} ->
@@ -41,131 +41,135 @@ interface CircuitOps
       (fx:Finite X) =>
       (fy:Finite Y) =>
       (d:Domain) ->
-      Signal d X ->
-      Signal d Y ->
-      Desc d (Signal d (X, Y))
+      Signal d (length @{fx}) X ->
+      Signal d (length @{fy}) Y ->
+      Desc d (Signal d (length @{fx} + length @{fy}) (X, Y))
 
     moore :
       {S:Type} ->
       {I:Type} ->
       {O:Type} ->
       (fs:Finite S) =>
+      (fi:Finite I) =>
       (fo:Finite O) =>
       (d:Domain) ->
-      (Signal d S -> Signal d I -> Desc d (Signal d (Pair S O))) ->
+      (
+        Signal d (length @{fs}) S ->
+        Signal d (length @{fi}) I ->
+        Desc d (Signal d (length @{fs} + length @{fo}) (Pair S O))
+      ) ->
       S ->
-      Signal d I ->
-      Desc d (Signal d O)
+      Signal d (length @{fi}) I ->
+      Desc d (Signal d (length @{fo}) O)
 
     constant :
       {X:Type} ->
-      Finite X =>
+      (fx:Finite X) =>
       (d:Domain) ->
       X ->
-      Desc d (Signal d X)
+      Desc d (Signal d (length @{fx}) X)
 
     invert :
       {n:Nat} ->
       (d:Domain) ->
-      Signal d (Vect n Bool) ->
-      Desc d (Signal d (Vect n Bool))
+      Signal d n (Vect n Bool) ->
+      Desc d (Signal d n (Vect n Bool))
 
     eq :
       {X:Type} ->
-      Finite X =>
+      (fx:Finite X) =>
       (d:Domain) ->
-      Signal d X ->
-      Signal d X ->
-      Desc d (Signal d Bool)
+      Signal d (length @{fx}) X ->
+      Signal d (length @{fx}) X ->
+      Desc d (Signal d 1 Bool)
 
     lt :
-      {X:Type} ->
-      Finite X =>
       (d:Domain) ->
-      Signal d X ->
-      Signal d X ->
-      Desc d (Signal d Bool)
+      {n:Nat} ->
+      Signal d n (BitInt n) ->
+      Signal d n (BitInt n) ->
+      Desc d (Signal d 1 Bool)
 
     mux :
       {X:Type} ->
-      Finite X =>
+      (fx:Finite X) =>
       (d:Domain) ->
-      Signal d Bool ->
-      Signal d X ->
-      Signal d X ->
-      Desc d (Signal d X)
+      Signal d 1 Bool ->
+      Signal d (length @{fx}) X ->
+      Signal d (length @{fx}) X ->
+      Desc d (Signal d (length @{fx}) X)
 
 public export
 register :
   {Domain : Type} ->
-  {Signal : Domain -> Type -> Type} ->
+  {Signal : Domain -> Nat -> Type -> Type} ->
   {Desc : Domain -> Type -> Type} ->
   {x:Type} ->
   CircuitOps Domain Signal Desc =>
-  Finite x =>
+  (fx:Finite x) =>
   (d:Domain) ->
   Monad (Desc d) =>
   x ->
-  Signal d x ->
-  Desc d (Signal d x)
+  Signal d (length @{fx}) x ->
+  Desc d (Signal d (length @{fx}) x)
 register d initial input =
   moore d (\state => \input => pair d input state) initial input
 
 public export
 not :
   {Domain : Type} ->
-  {Signal : Domain -> Type -> Type} ->
+  {Signal : Domain -> Nat -> Type -> Type} ->
   {Desc : Domain -> Type -> Type} ->
   CircuitOps Domain Signal Desc =>
   (d:Domain) ->
   Monad (Desc d) =>
-  Signal d Bool ->
-  Desc d (Signal d Bool)
+  Signal d 1 Bool ->
+  Desc d (Signal d 1 Bool)
 not d x = do
-  let x' = the (Signal d (Vect 1 Bool)) $ reinterpret d Refl x
+  let x' = the (Signal d 1 (Vect 1 Bool)) $ reinterpret d Refl x
   y <- invert d x'
-  pure $ the (Signal d Bool) $ reinterpret d Refl y
+  pure $ the (Signal d 1 Bool) $ reinterpret d Refl y
 
 public export
 gt :
   {Domain : Type} ->
-  {Signal : Domain -> Type -> Type} ->
+  {Signal : Domain -> Nat -> Type -> Type} ->
   {Desc : Domain -> Type -> Type} ->
   CircuitOps Domain Signal Desc =>
   {n:Nat} ->
   (d:Domain) ->
   Monad (Desc d) =>
-  Signal d (Vect n Bool) ->
-  Signal d (Vect n Bool) ->
-  Desc d (Signal d Bool)
+  Signal d n (BitInt n) ->
+  Signal d n (BitInt n) ->
+  Desc d (Signal d 1 Bool)
 gt d x y = lt d y x
 
 public export
 ge :
   {Domain : Type} ->
-  {Signal : Domain -> Type -> Type} ->
+  {Signal : Domain -> Nat -> Type -> Type} ->
   {Desc : Domain -> Type -> Type} ->
   CircuitOps Domain Signal Desc =>
   {n:Nat} ->
   (d:Domain) ->
   Monad (Desc d) =>
-  Signal d (Vect n Bool) ->
-  Signal d (Vect n Bool) ->
-  Desc d (Signal d Bool)
+  Signal d n (BitInt n) ->
+  Signal d n (BitInt n) ->
+  Desc d (Signal d 1 Bool)
 ge d x y = lt d x y >>= not d
 
 public export
 le :
   {Domain : Type} ->
-  {Signal : Domain -> Type -> Type} ->
+  {Signal : Domain -> Nat -> Type -> Type} ->
   {Desc : Domain -> Type -> Type} ->
   CircuitOps Domain Signal Desc =>
   {n:Nat} ->
   (d:Domain) ->
   Monad (Desc d) =>
-  Signal d (Vect n Bool) ->
-  Signal d (Vect n Bool) ->
-  Desc d (Signal d Bool)
+  Signal d n (BitInt n) ->
+  Signal d n (BitInt n) ->
+  Desc d (Signal d 1 Bool)
 le d x y = gt d x y >>= not d
 
 public export
@@ -173,16 +177,16 @@ data Circuit : {i:Type} -> {o:Type} -> i -> o -> Type where
   MkCircuit :
     {I:Type} ->
     {O:Type} ->
-    Finite I =>
-    Finite O =>
+    (fi:Finite I) =>
+    (fo:Finite O) =>
     (
       {Domain : Type} ->
-      {Signal : Domain -> Type -> Type} ->
+      {Signal : Domain -> Nat -> Type -> Type} ->
       {Desc : Domain -> Type -> Type} ->
       CircuitOps Domain Signal Desc =>
       (domain : Domain) ->
       Monad (Desc domain) =>
-      Signal domain I ->
-      Desc domain (Signal domain O)
+      Signal domain (length @{fi}) I ->
+      Desc domain (Signal domain (length @{fo}) O)
     ) ->
     Circuit I O

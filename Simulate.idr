@@ -8,10 +8,8 @@ import CircuitOps
 
 data Domain = D
 
-data Signal : Domain -> Type -> Type where
-  MkSignal :
-    Colist x ->
-    Signal D x
+data Signal : Domain -> Nat -> Type -> Type where
+  MkSignal : {n:Nat} -> Colist x -> Signal D n x
 
 data Desc : Domain -> Type -> Type where
   MkDesc : x -> Desc D x
