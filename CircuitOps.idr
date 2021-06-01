@@ -17,18 +17,16 @@ interface CircuitOps
       Desc d (Signal d (S n) (BitInt (S n)))
 
     reinterpret :
-      {X:Type} ->
-      {Y:Type} ->
-      (fx:Finite X) =>
-      (fy:Finite Y) =>
+      {x, y : Type} ->
+      (fx:Finite x) =>
+      (fy:Finite y) =>
       (d:Domain) ->
       length @{fx} = length @{fy} ->
-      Signal d (length @{fx}) X ->
-      Signal d (length @{fy}) Y
+      Signal d (length @{fx}) x ->
+      Signal d (length @{fy}) y
 
     unpair :
-      {X:Type} ->
-      {Y:Type} ->
+      {X, Y : Type} ->
       (fx:Finite X) =>
       (fy:Finite Y) =>
       (d:Domain) ->
@@ -36,8 +34,7 @@ interface CircuitOps
       Desc d (Signal d (length @{fx}) X, Signal d (length @{fy}) Y)
 
     pair :
-      {X:Type} ->
-      {Y:Type} ->
+      {X, Y : Type} ->
       (fx:Finite X) =>
       (fy:Finite Y) =>
       (d:Domain) ->
@@ -46,9 +43,7 @@ interface CircuitOps
       Desc d (Signal d (length @{fx} + length @{fy}) (X, Y))
 
     moore :
-      {S:Type} ->
-      {I:Type} ->
-      {O:Type} ->
+      {S, I, O : Type} ->
       (fs:Finite S) =>
       (fi:Finite I) =>
       (fo:Finite O) =>
@@ -56,7 +51,7 @@ interface CircuitOps
       (
         Signal d (length @{fs}) S ->
         Signal d (length @{fi}) I ->
-        Desc d (Signal d (length @{fs} + length @{fo}) (Pair S O))
+        Desc d (Signal d (length @{fs}) S, Signal d (length @{fo}) O)
       ) ->
       S ->
       Signal d (length @{fi}) I ->
@@ -113,7 +108,7 @@ register :
   Signal d (length @{fx}) x ->
   Desc d (Signal d (length @{fx}) x)
 register d initial input =
-  moore d (\state => \input => pair d input state) initial input
+  moore d (\state, input => pure (input, state)) initial input
 
 public export
 not :
@@ -173,10 +168,9 @@ le :
 le d x y = gt d x y >>= not d
 
 public export
-data Circuit : {i:Type} -> {o:Type} -> i -> o -> Type where
+data Circuit : {i, o : Type} -> i -> o -> Type where
   MkCircuit :
-    {I:Type} ->
-    {O:Type} ->
+    {I, O : Type} ->
     (fi:Finite I) =>
     (fo:Finite O) =>
     (

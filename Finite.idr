@@ -31,6 +31,14 @@ public export
     in MkPair (decode x) (decode y)
 
 public export
+[finitePair] (fx:Finite x) => (fy:Finite y) => Finite (Pair x y) where
+  length = length @{fx} + length @{fy}
+  encode (MkPair x y) = encode x ++ encode y
+  decode bits =
+    let MkPair x y = splitAt (length @{fx}) bits
+    in MkPair (decode x) (decode y)
+
+public export
 Finite Bool where
   length = 1
 

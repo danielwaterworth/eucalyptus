@@ -37,16 +37,16 @@ bar : x = y -> Vect x Bool = Vect y Bool
 bar Refl = Refl
 
 CircuitOps Domain Signal Desc where
-  add D (MkSignal x) (MkSignal y) = pure (MkSignal (zipWith addBitInt x y))
+  add D (MkSignal a) (MkSignal b) = pure (MkSignal (zipWith addBitInt a b))
 
-  reinterpret {fx} {fy} D prf (MkSignal x) =
-      MkSignal (map recode x)
+  reinterpret D prf (MkSignal a) =
+      MkSignal (map recode a)
     where
-      recode : X -> Y
-      recode x = decode encoded'
+      recode : x -> y
+      recode v = decode encoded'
         where
           encoded : Vect (length @{fx}) Bool
-          encoded = encode x
+          encoded = encode v
 
           prf' : Vect (length @{fx}) Bool = Vect (length @{fy}) Bool
           prf' = bar prf
@@ -61,9 +61,9 @@ CircuitOps Domain Signal Desc where
   moore D f initial (MkSignal input) =
     pure $ MkSignal $
       mooreS
-        (\states => \inputs =>
-          let MkDesc (MkSignal output) = f (MkSignal states) (MkSignal inputs)
-          in output)
+        (\states, inputs =>
+          let MkDesc (MkSignal a, MkSignal b) = f (MkSignal states) (MkSignal inputs)
+          in zip a b)
         initial
         input
 
