@@ -326,19 +326,35 @@ inputSignal {fi} =
     (Z ** prf) => esignal prf
     (S n ** prf) => psignal n prf 0
 
+intersperse : x -> List x -> List x
+intersperse _ [] = []
+intersperse _ [x] = [x]
+intersperse a (x :: xs) = x :: a :: intersperse a xs
+
+mkOutput : Signal D n o -> (List (List String), List String)
+mkOutput (ESignal _) = ([], [])
+mkOutput (PSignal n _ x) =
+  (
+    [["  output [", show n, ":0] out"]],
+    ["  assign out = v", show x, ";\n"]
+  )
+
 public export
 compile : String -> Circuit i o -> String
-compile moduleName (MkCircuit {fi} f) =
+compile moduleName (MkCircuit {fi} {fo} f) =
   let
     MkDesc m = f D (inputSignal @{fi})
     (o, _, MkOutput decls updates) = runRWS m MkUnit 1
+
+    clock = [["  input clk"]]
+
     inputs =
       case length @{fi} of
-        Z => ["  input clk\n"]
-        S n => [
-          "  input clk,\n",
-          "  input [", show n, ":0] in\n"
-        ]
+        Z => []
+        S n => [["  input [", show n, ":0] in"]]
+
+    (outputs, outputUpdate) = mkOutput o
+    ports = concat $ intersperse [",\n"] (clock ++ inputs ++ outputs)
   in
     concat $ concat (the (List (List String)) [
       [
@@ -346,10 +362,12 @@ compile moduleName (MkCircuit {fi} f) =
         moduleName,
         "(\n"
       ],
-      inputs,
-      [")\n"],
+      ports,
+      ["\n)\n"],
       decls,
       ["\n"],
       updates,
+      ["\n"],
+      outputUpdate,
       ["endmodule\n"]
     ])
