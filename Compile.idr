@@ -1,7 +1,8 @@
 module Compile
 
-import Data.Vect
+import Data.List
 import Data.Nat
+import Data.Vect
 
 import Syntax.WithProof
 
@@ -26,12 +27,12 @@ Monoid Output where
 
 data Signal : Domain -> Nat -> Type -> Type where
   ESignal : (fx:Finite x) => length @{fx} = Z -> Signal D Z x
-  PSignal : (fx:Finite x) => (n:Nat) -> length @{fx} = S n -> Nat -> Signal D (S n) x
+  PSignal : (fx:Finite x) => (n:Nat) -> length @{fx} = S n -> String -> Signal D (S n) x
 
 esignal : (fx:Finite x) => length @{fx} = Z -> Signal D (length @{fx}) x
 esignal prf = rewrite prf in ESignal prf
 
-psignal : (fx:Finite x) => (n:Nat) -> length @{fx} = S n -> Nat -> Signal D (length @{fx}) x
+psignal : (fx:Finite x) => (n:Nat) -> length @{fx} = S n -> String -> Signal D (length @{fx}) x
 psignal n prf m = rewrite prf in PSignal n prf m
 
 data Desc : Domain -> Type -> Type where
@@ -58,8 +59,8 @@ MonadWriter Output (Desc D) where
   listen (MkDesc m) = MkDesc $ listen m
   pass (MkDesc m) = MkDesc $ pass m
 
-alloc : Desc D Nat
-alloc = state (\s => (s + 1, s))
+alloc : Desc D String
+alloc = state (\s => (s + 1, "v" ++ show s))
 
 literal : Vect n Bool -> String
 literal xs =
@@ -88,12 +89,12 @@ CircuitOps Domain Signal Desc where
         [
           "  wire [",
           show n,
-          ":0] v",
-          show v,
-          " = v",
-          show x,
-          " + v",
-          show y,
+          ":0] ",
+          v,
+          " = ",
+          x,
+          " + ",
+          y,
           ";\n"
         ]
         []
@@ -141,10 +142,10 @@ CircuitOps Domain Signal Desc where
               [
                 "  wire [",
                 show $ a,
-                ":0] v",
-                show x,
-                " = v",
-                show v,
+                ":0] ",
+                x,
+                " = ",
+                v,
                 "[",
                 show n,
                 ":",
@@ -158,10 +159,10 @@ CircuitOps Domain Signal Desc where
               [
                 "  wire [",
                 show b,
-                ":0] v",
-                show y,
-                " = v",
-                show v,
+                ":0] ",
+                y,
+                " = ",
+                v,
                 "[",
                 show b,
                 ":0];\n"
@@ -185,12 +186,12 @@ CircuitOps Domain Signal Desc where
               [
                 "  wire [",
                 show n,
-                ":0] v",
-                show o,
-                " = {v",
-                show x,
-                ", v",
-                show y,
+                ":0] ",
+                o,
+                " = {",
+                x,
+                ", ",
+                y,
                 "};\n"
               ]
               []
@@ -209,17 +210,17 @@ CircuitOps Domain Signal Desc where
             [
               "  reg [",
               show m,
-              ":0] v",
-              show s,
+              ":0] ",
+              s,
               " = ",
               literal $ encode @{fs} initial,
               ";\n"
             ]
             [
-              "  always @(posedge clk) v",
-              show s,
-              " <= v",
-              show s',
+              "  always @(posedge clk) ",
+              s,
+              " <= ",
+              s',
               ";\n"
             ]
 
@@ -236,8 +237,8 @@ CircuitOps Domain Signal Desc where
             [
               "  wire [",
               show n,
-              ":0] v",
-              show v,
+              ":0] ",
+              v,
               " = ",
               literal $ encode x,
               ";\n"
@@ -253,10 +254,10 @@ CircuitOps Domain Signal Desc where
         [
           "  wire [",
           show n,
-          ":0] v",
-          show o,
-          " = ~v",
-          show x,
+          ":0] ",
+          o,
+          " = ~",
+          x,
           ";\n"
         ]
         []
@@ -270,10 +271,10 @@ CircuitOps Domain Signal Desc where
           [
             "  wire [1:0] v",
             show n,
-            " = v",
-            show a,
-            " == v",
-            show b,
+            " = ",
+            a,
+            " == ",
+            b,
             ";\n"
           ]
           []
@@ -287,10 +288,10 @@ CircuitOps Domain Signal Desc where
         [
           "  wire [1:0] v",
           show n,
-          " = v",
-          show a,
-          " < v",
-          show b,
+          " = ",
+          a,
+          " < ",
+          b,
           ";\n"
         ]
         []
@@ -305,14 +306,14 @@ CircuitOps Domain Signal Desc where
           [
             "  wire [",
             show n,
-            ":0] v",
-            show o,
-            " = v",
-            show cond,
-            " ? v",
-            show t,
-            " : v",
-            show f,
+            ":0] ",
+            o,
+            " = ",
+            cond,
+            " ? ",
+            t,
+            " : ",
+            f,
             ";\n"
           ]
           []
@@ -320,40 +321,44 @@ CircuitOps Domain Signal Desc where
     mux D (PSignal 0 _ cond) (ESignal _) (ESignal _) | Z =
       pure $ ESignal @{fx} (believe_me (the (1 = 1) Refl))
 
-inputSignal : (fi:Finite i) => Signal D (length @{fi}) i
-inputSignal {fi} =
-  case @@(length @{fi}) of
-    (Z ** prf) => esignal prf
-    (S n ** prf) => psignal n prf 0
+inputSignal : {i : List (String, Nat, Type)} -> Finites i -> HalfPort Signal D i
+inputSignal First = []
+inputSignal (Next @{fx} fs) with (length @{fx}) proof prf
+  inputSignal (Next @{fx} fs) | Z with (i)
+    inputSignal (Next @{fx} fs) | Z | ((_, Z, _)::_) = ESignal prf :: inputSignal fs
+    inputSignal (Next @{fx} fs) | Z | ((_, S n, _)::_) = ?inputSignal1
+    inputSignal (Next @{fx} fs) | Z | [] = ?inputSignal2
+  inputSignal (Next @{fx} fs) | S n with (i)
+    inputSignal (Next @{fx} fs) | S n | ((_, Z, _)::_) = ?inputSignal3
+    inputSignal (Next @{fx} fs) | S n | ((name, S _, _)::_) =
+      PSignal n prf name :: inputSignal fs
+    inputSignal (Next @{fx} fs) | S n | [] = ?inputSignal4
 
-intersperse : x -> List x -> List x
-intersperse _ [] = []
-intersperse _ [x] = [x]
-intersperse a (x :: xs) = x :: a :: intersperse a xs
-
-mkOutput : Signal D n o -> (List (List String), List String)
-mkOutput (ESignal _) = ([], [])
-mkOutput (PSignal n _ x) =
+mkOutput : (String, Nat, String) -> (List String, List String)
+mkOutput (name, n, x) =
   (
-    [["  output [", show n, ":0] out"]],
-    ["  assign out = v", show x, ";\n"]
+    ["  output [", show n, ":0] ", name],
+    ["  assign ", name, " = ", x, ";\n"]
   )
+
+outputs : {o : List (String, Nat, Type)} -> HalfPort Signal D o -> List (String, Nat, String)
+outputs (ESignal _::xs) = outputs xs
+outputs {o=(name, _, _) :: _} (PSignal n _ v::xs) = (name, (S n), v) :: outputs xs
+outputs _ = []
 
 public export
 compile : String -> Circuit i o -> String
-compile moduleName (MkCircuit {fi} {fo} f) =
+compile moduleName (MkCircuit {i} {o} {fi} {fo} f) =
   let
-    MkDesc m = f D (inputSignal @{fi})
-    (o, _, MkOutput decls updates) = runRWS m MkUnit 1
+    input = inputSignal fi
+    MkDesc m = f D input
+    (o, _, MkOutput decls updates) = runRWS m MkUnit 0
 
     clock = [["  input clk"]]
 
-    inputs =
-      case length @{fi} of
-        Z => []
-        S n => [["  input [", show n, ":0] in"]]
+    inputs = map (\(name, n, t) => ["  input [", show n, ":0] ", name]) i
 
-    (outputs, outputUpdate) = mkOutput o
+    (outputs, outputUpdate) = unzip $ map mkOutput $ outputs o
     ports = concat $ intersperse [",\n"] (clock ++ inputs ++ outputs)
   in
     concat $ concat (the (List (List String)) [
@@ -368,6 +373,6 @@ compile moduleName (MkCircuit {fi} {fo} f) =
       ["\n"],
       updates,
       ["\n"],
-      outputUpdate,
+      concat outputUpdate,
       ["endmodule\n"]
     ])

@@ -81,7 +81,25 @@ CircuitOps Domain Signal Desc where
     pure $ MkSignal $ zipWith3 (\cond' => \t' => \f' => if cond' then t' else f') cond t f
 
 public export
-simulate : {I:Type} -> {O:Type} -> Circuit I O -> Colist I -> Colist O
-simulate (MkCircuit f) i =
-  let MkDesc (MkSignal o) = f D (MkSignal i)
-  in o
+data Values : List (String, Nat, Type) -> Type where
+  Nil : Values []
+  (::) :
+    {n:Nat} ->
+    Colist t ->
+    Values xs ->
+    Values ((name, n, t) :: xs)
+
+translate : Values x -> HalfPort Signal D x
+translate [] = []
+translate (x :: xs) = MkSignal x :: translate xs
+
+inverse : HalfPort Signal D x -> Values x
+inverse [] = []
+inverse (MkSignal x :: xs) = x :: inverse xs
+inverse _ = ?inverse1
+
+public export
+simulate : {i, o : List (String, Nat, Type)} -> Circuit i o -> Values i -> Values o
+simulate (MkCircuit {fo} f) i =
+  let MkDesc o = f D (translate i)
+  in inverse o

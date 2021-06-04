@@ -168,11 +168,28 @@ le :
 le d x y = gt d x y >>= not d
 
 public export
-data Circuit : {i, o : Type} -> i -> o -> Type where
+data HalfPort : {Domain:Type} -> (signal : Domain -> Nat -> Type -> Type) -> Domain -> List (String, Nat, Type) -> Type where
+  Nil : HalfPort signal d []
+  (::) :
+    {Domain : Type} ->
+    {signal : Domain -> Nat -> Type -> Type} ->
+    {d:Domain} ->
+    signal d n t -> HalfPort signal d xs -> HalfPort signal d ((name, n, t)::xs)
+
+public export
+data Finites : List (String, Nat, Type) -> Type where
+  First : Finites []
+  Next :
+    (fx:Finite x) =>
+    Finites xs ->
+    Finites ((name, length @{fx}, x)::xs)
+
+public export
+data Circuit : (i, o : List (String, Nat, Type)) -> Type where
   MkCircuit :
-    {I, O : Type} ->
-    (fi:Finite I) =>
-    (fo:Finite O) =>
+    {i, o : List (String, Nat, Type)} ->
+    {auto fi: Finites i} ->
+    {auto fo: Finites o} ->
     (
       {Domain : Type} ->
       {Signal : Domain -> Nat -> Type -> Type} ->
@@ -180,7 +197,7 @@ data Circuit : {i, o : Type} -> i -> o -> Type where
       CircuitOps Domain Signal Desc =>
       (domain : Domain) ->
       Monad (Desc domain) =>
-      Signal domain (length @{fi}) I ->
-      Desc domain (Signal domain (length @{fo}) O)
+      HalfPort Signal domain i ->
+      Desc domain (HalfPort Signal domain o)
     ) ->
-    Circuit I O
+    Circuit i o

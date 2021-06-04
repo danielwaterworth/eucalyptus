@@ -12,7 +12,7 @@ unconcat {m=S m} {n} xs =
 
 public export
 interface Finite x where
-  length : Nat
+  total length : Nat
   encode : x -> Vect length Bool
   decode : Vect length Bool -> x
 

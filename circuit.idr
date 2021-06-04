@@ -10,21 +10,21 @@ import CircuitOps
 import Compile
 import Simulate
 
-testCircuit : Circuit (Pair (BitInt 4) (BitInt 4)) (BitInt 5)
+testCircuit : Circuit [("a", 4, BitInt 4), ("b", 4, BitInt 4)] [("out", 5, BitInt 5)]
 testCircuit =
-  MkCircuit $ \d => \i => do
-    (a, b) <- unpair d i
+  MkCircuit {fi=Next (Next First)} {fo=(Next First)} $ \d, [a, b] => do
     output <- add d a b
-    register d (MkBitInt [True, True, True, True, True]) output
+    out <- register d (MkBitInt [True, True, True, True, True]) output
+    pure [out]
 
 main : IO ()
 main = do
   putStrLn $ compile "test" testCircuit
-  print $
-    take 2 $
-      simulate
-        testCircuit
-        [
-          (MkBitInt [True, True, False, False], MkBitInt [False, True, False, False]),
-          (MkBitInt [True, True, False, False], MkBitInt [False, True, False, False])
-        ]
+  let [out] =
+        simulate
+          testCircuit
+          [
+            [MkBitInt [True, True, False, False], MkBitInt [False, True, False, False]],
+            [MkBitInt [True, True, False, False], MkBitInt [False, True, False, False]]
+          ]
+  print $ take 2 out
