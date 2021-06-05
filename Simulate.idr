@@ -30,33 +30,18 @@ mooreS f initial i = map snd steps
     steps : Colist (Pair s o)
     steps = f (initial :: map fst steps) i
 
-foo : x = y -> x -> y
-foo Refl x = x
-
-bar : x = y -> Vect x Bool = Vect y Bool
-bar Refl = Refl
-
 CircuitOps Domain Signal Desc where
-  add D (MkSignal a) (MkSignal b) = pure (MkSignal (zipWith addBitInt a b))
+  add D (MkSignal a) (MkSignal b) =
+    pure (MkSignal (zipWith addBitInt a b))
 
   reinterpret D prf (MkSignal a) =
-      MkSignal (map recode a)
-    where
-      recode : x -> y
-      recode v = decode encoded'
-        where
-          encoded : Vect (length @{fx}) Bool
-          encoded = encode v
+    MkSignal (map (decode . rewrite (sym prf) in encode) a)
 
-          prf' : Vect (length @{fx}) Bool = Vect (length @{fy}) Bool
-          prf' = bar prf
+  unpair D (MkSignal x) =
+    pure (MkSignal (map fst x), MkSignal (map snd x))
 
-          encoded' : Vect (length @{fy}) Bool
-          encoded' = foo prf' encoded
-
-  unpair D (MkSignal x) = pure (MkSignal (map fst x), MkSignal (map snd x))
-
-  pair D (MkSignal x) (MkSignal y) = pure (MkSignal (zip x y))
+  pair D (MkSignal x) (MkSignal y) =
+    pure (MkSignal (zip x y))
 
   moore D f initial (MkSignal input) =
     pure $ MkSignal $
@@ -67,9 +52,11 @@ CircuitOps Domain Signal Desc where
         initial
         input
 
-  constant D x = pure (MkSignal (repeat x))
+  constant D x =
+    pure (MkSignal (repeat x))
 
-  invert D (MkSignal x) = pure $ MkSignal $ map (map not) x
+  invert D (MkSignal x) =
+    pure $ MkSignal $ map (map not) x
 
   eq D (MkSignal x) (MkSignal y) =
     pure $ MkSignal $ zipWith (==) (map encode x) (map encode y)
@@ -78,7 +65,7 @@ CircuitOps Domain Signal Desc where
     pure $ MkSignal $ zipWith (<) (map encode x) (map encode y)
 
   mux D (MkSignal cond) (MkSignal t) (MkSignal f) =
-    pure $ MkSignal $ zipWith3 (\cond' => \t' => \f' => if cond' then t' else f') cond t f
+    pure $ MkSignal $ zipWith3 (\cond', t', f' => if cond' then t' else f') cond t f
 
 public export
 data Values : List (String, Nat, Type) -> Type where
