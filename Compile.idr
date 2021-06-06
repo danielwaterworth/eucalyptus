@@ -323,16 +323,10 @@ CircuitOps Domain Signal Desc where
 
 inputSignal : {i : List (String, Nat, Type)} -> Finites i -> HalfPort Signal D i
 inputSignal First = []
-inputSignal (Next @{fx} fs) with (length @{fx}) proof prf
-  inputSignal (Next @{fx} fs) | Z with (i)
-    inputSignal (Next @{fx} fs) | Z | ((_, Z, _)::_) = ESignal prf :: inputSignal fs
-    inputSignal (Next @{fx} fs) | Z | ((_, S n, _)::_) = ?inputSignal1
-    inputSignal (Next @{fx} fs) | Z | [] = ?inputSignal2
-  inputSignal (Next @{fx} fs) | S n with (i)
-    inputSignal (Next @{fx} fs) | S n | ((_, Z, _)::_) = ?inputSignal3
-    inputSignal (Next @{fx} fs) | S n | ((name, S _, _)::_) =
-      PSignal n prf name :: inputSignal fs
-    inputSignal (Next @{fx} fs) | S n | [] = ?inputSignal4
+inputSignal (Next fx Z prf fs) =
+  ESignal prf :: inputSignal fs
+inputSignal (Next fx (S n) prf fs) {i=(name, _, _)::_} =
+  PSignal n prf name :: inputSignal fs
 
 mkOutput : (String, Nat, String) -> (List String, List String)
 mkOutput (name, n, x) =

@@ -180,9 +180,11 @@ public export
 data Finites : List (String, Nat, Type) -> Type where
   First : Finites []
   Next :
-    (fx:Finite x) =>
+    (fx:Finite x) ->
+    (n:Nat) ->
+    length @{fx} = n ->
     Finites xs ->
-    Finites ((name, length @{fx}, x)::xs)
+    Finites ((name, n, x)::xs)
 
 public export
 data Circuit : (i, o : List (String, Nat, Type)) -> Type where

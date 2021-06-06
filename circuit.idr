@@ -12,7 +12,7 @@ import Simulate
 
 testCircuit : Circuit [("a", 4, BitInt 4), ("b", 4, BitInt 4)] [("out", 5, BitInt 5)]
 testCircuit =
-  MkCircuit {fi=Next (Next First)} {fo=(Next First)} $ \d, [a, b] => do
+  MkCircuit $ \d, [a, b] => do
     output <- add d a b
     out <- register d (MkBitInt [True, True, True, True, True]) output
     pure [out]
