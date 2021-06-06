@@ -1,10 +1,10 @@
-module Simulate
+module Eucalyptus.Simulate
 
 import Data.Vect
 import Data.Colist
 
-import Finite
-import CircuitOps
+import Eucalyptus.Finite
+import Eucalyptus.CircuitOps
 
 data Domain = D
 

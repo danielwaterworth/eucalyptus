@@ -1,4 +1,4 @@
-module Compile
+module Eucalyptus.Compile
 
 import Data.List
 import Data.Nat
@@ -9,8 +9,8 @@ import Syntax.WithProof
 import Control.Monad.RWS
 import Control.Monad.Identity
 
-import Finite
-import CircuitOps
+import Eucalyptus.Finite
+import Eucalyptus.CircuitOps
 
 data Domain = D
 

@@ -1,8 +1,8 @@
-module CircuitOps
+module Eucalyptus.CircuitOps
 
 import Data.Vect
 
-import Finite
+import Eucalyptus.Finite
 
 public export
 interface CircuitOps

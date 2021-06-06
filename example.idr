@@ -5,10 +5,7 @@ import Data.Vect
 import Data.Nat
 import Data.Colist
 
-import Finite
-import CircuitOps
-import Compile
-import Simulate
+import Eucalyptus
 
 testCircuit : Circuit [("a", 4, BitInt 4), ("b", 4, BitInt 4)] [("out", 5, BitInt 5)]
 testCircuit =

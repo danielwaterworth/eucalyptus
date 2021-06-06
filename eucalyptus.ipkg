@@ -1,0 +1,10 @@
+package eucalyptus
+version = 0.1
+depends = contrib
+
+modules =
+  Eucalyptus,
+  Eucalyptus.CircuitOps,
+  Eucalyptus.Compile,
+  Eucalyptus.Finite,
+  Eucalyptus.Simulate

@@ -1,4 +1,4 @@
-module Finite
+module Eucalyptus.Finite
 
 import Data.Bits
 import Data.Vect
